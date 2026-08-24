@@ -37,6 +37,10 @@ body{background:var(--bg);color:var(--text);font:12px/1.45 Inter,system-ui,Robot
 .scr-head,.row{display:grid;grid-template-columns:1fr 62px 62px 74px;gap:6px;padding:0 12px;align-items:center}
 .scr-head{height:34px;color:var(--muted);font-size:10px;text-transform:uppercase;border-bottom:1px solid var(--border);flex:0 0 auto}
 .scr-head span:not(:first-child),.row span:not(:first-child){text-align:right}
+.scr-head span{cursor:pointer;user-select:none}
+.scr-head span:hover{color:var(--text)}
+.scr-head span.sorted{color:var(--yellow)}
+.scr-head i{font-style:normal;font-size:8px}
 #rows{flex:1;overflow-y:auto;min-height:0}
 .row{height:30px;cursor:pointer;border-bottom:1px solid #14181d}
 .row:hover{background:#161b21}
@@ -69,7 +73,7 @@ body{background:var(--bg);color:var(--text);font:12px/1.45 Inter,system-ui,Robot
 <header id="topbar">
   <div class="logo">₿ CryptoScreener <b>PRO</b></div>
   <nav id="tfBar"></nav>
-  <input id="search" placeholder="Пошук монети…">
+  <input id="search" placeholder="Search coin…">
   <button class="btn-pro" id="upgradeBtn">⭐ PRO</button>
 </header>
 
@@ -81,7 +85,7 @@ body{background:var(--bg);color:var(--text);font:12px/1.45 Inter,system-ui,Robot
     <div class="pane"><div class="pane-h"><span class="pair"><i class="dot"></i><b class="sym">BTCUSDT</b></span><span class="tf-badge">1d</span><span class="legend"></span></div><div class="chart"></div></div>
   </div>
   <aside id="screener">
-    <div class="scr-head"><span>Символ</span><span>24h %</span><span>NATR %</span><span>24h $</span></div>
+    <div class="scr-head"><span data-key="sym">Symbol <i></i></span><span data-key="chg">24h % <i></i></span><span data-key="natr">NATR % <i></i></span><span data-key="vol">24h $ <i></i></span></div>
     <div id="rows"></div>
   </aside>
 </div>
@@ -111,11 +115,7 @@ let SYMBOL='BTCUSDT', activePane=0, ws=null, screenerData=[], natrMap={}, natrCa
 const NATR_TTL=3600000;
 try{natrCache=JSON.parse(localStorage.getItem('natr_cache')||'{}');}catch{}
 function saveCache(){try{localStorage.setItem('natr_cache',JSON.stringify(natrCache));}catch{}}
-function getCachedNatr(sym){
-  const c=natrCache[sym];
-  if(c && Date.now()-c.t<NATR_TTL) return c.v;
-  return null;
-}
+function getCachedNatr(sym){const c=natrCache[sym]; if(c&&Date.now()-c.t<NATR_TTL) return c.v; return null;}
 function setCachedNatr(sym,val){natrCache[sym]={v:val,t:Date.now()};}
 
 $('#tfBar').innerHTML=TFS.map(t=>`<button data-tf="${t}">${t}</button>`).join('');
@@ -147,12 +147,11 @@ const fmtV=v=>v>=1e9?(v/1e9).toFixed(1)+'B':v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3
 function setLegend(p,c){const col=c.close>=c.open?UP:DN;
   p.legend.innerHTML=`O <b style="color:${col}">${fmtP(c.open)}</b> H <b style="color:${col}">${fmtP(c.high)}</b> L <b style="color:${col}">${fmtP(c.low)}</b> C <b style="color:${col}">${fmtP(c.close)}</b> V <b style="color:#b57bee">${fmtV(c.volume)}</b>`;}
 
-/* ── Швидкий fetch з кешуванням ── */
 const reqCache=new Map();
 async function cachedFetch(url,maxAge=10000){
   const now=Date.now();
   const hit=reqCache.get(url);
-  if(hit && now-hit.t<maxAge) return hit.d;
+  if(hit&&now-hit.t<maxAge) return hit.d;
   const r=await fetch(url);
   const d=await r.json();
   reqCache.set(url,{d,t:now});
@@ -197,23 +196,17 @@ function natrOf(k){ if(k.length<2) return 0;
   return atr/k[k.length-1].close*100;
 }
 
-/* ── Швидкий NATR: спочатку кеш, потім lazy load ── */
 async function lazyLoadNatr(items){
   const toLoad=items.filter(r=>getCachedNatr(r.s)==null);
-  // Показуємо "..." одразу
-  for(const r of items){
-    const cached=getCachedNatr(r.s);
-    if(cached!=null) natrMap[r.s]=cached;
-  }
+  for(const r of items){const cached=getCachedNatr(r.s); if(cached!=null) natrMap[r.s]=cached;}
   renderRows();
-  // Завантажуємо по одному, показуючи прогрес
   for(let i=0;i<toLoad.length;i++){
     try{
       const k=await getKlines(toLoad[i].s,'1d',16);
       const n=natrOf(k);
       natrMap[toLoad[i].s]=n;
       setCachedNatr(toLoad[i].s,n);
-      if(i%3===0) renderRows(); // оновлюємо UI кожні 3 монети
+      if(i%3===0) renderRows();
     }catch{}
   }
   saveCache();
@@ -227,7 +220,7 @@ async function loadScreener(){
     .map(x=>({s:x.symbol,chg:+x.priceChangePercent,vol:+x.quoteVolume}))
     .sort((a,b)=>b.vol-a.vol).slice(0,30);
   renderRows();
-  lazyLoadNatr(screenerData.slice(0,20)); // NATR тільки для топ-20
+  lazyLoadNatr(screenerData.slice(0,20));
 }
 
 let refreshTimer=null;
@@ -240,11 +233,32 @@ async function refreshTickers(){
       if(!Array.isArray(t)) return;
       const m=Object.fromEntries(t.map(x=>[x.symbol,x]));
       let changed=false;
-      screenerData.forEach(r=>{const x=m[r.s]; if(x && (r.chg!==+x.priceChangePercent||r.vol!==+x.quoteVolume)){r.chg=+x.priceChangePercent; r.vol=+x.quoteVolume; changed=true;}});
+      screenerData.forEach(r=>{const x=m[r.s]; if(x&&(r.chg!==+x.priceChangePercent||r.vol!==+x.quoteVolume)){r.chg=+x.priceChangePercent; r.vol=+x.quoteVolume; changed=true;}});
       if(changed) renderRows();
     }catch{}
   },100);
 }
+
+/* ── СОРТУВАННЯ: Symbol / 24h % / NATR % / 24h $ ── */
+let sortKey='vol', sortDir=-1; // за замовчуванням: за об'ємом, спадання
+function sortVal(r){
+  if(sortKey==='chg') return r.chg;
+  if(sortKey==='natr'){const n=natrMap[r.s]??getCachedNatr(r.s); return n==null?-Infinity:n;}
+  return r.vol;
+}
+function updateSortUI(){
+  document.querySelectorAll('.scr-head span[data-key]').forEach(sp=>{
+    const k=sp.dataset.key, active=k===sortKey;
+    sp.classList.toggle('sorted',active);
+    sp.querySelector('i').textContent=active?(sortDir===1?'▲':'▼'):'';
+  });
+}
+document.querySelector('.scr-head').addEventListener('click',e=>{
+  const sp=e.target.closest('span[data-key]'); if(!sp) return;
+  const k=sp.dataset.key;
+  if(sortKey===k) sortDir*=-1; else {sortKey=k; sortDir=(k==='sym')?1:-1;}
+  updateSortUI(); renderRows();
+});
 
 let renderPending=false;
 function renderRows(){
@@ -253,7 +267,11 @@ function renderRows(){
   requestAnimationFrame(()=>{
     renderPending=false;
     const q=$('#search').value.trim().toUpperCase();
-    $('#rows').innerHTML=screenerData.filter(r=>r.s.includes(q)).map(r=>{
+    const list=screenerData.filter(r=>r.s.includes(q)).sort((a,b)=>{
+      if(sortKey==='sym') return a.s.localeCompare(b.s)*sortDir;
+      return (sortVal(a)-sortVal(b))*sortDir;
+    });
+    $('#rows').innerHTML=list.map(r=>{
       const n=natrMap[r.s];
       const cached=getCachedNatr(r.s);
       const showVal=n!=null?n.toFixed(2):cached!=null?cached.toFixed(2):null;
@@ -267,12 +285,13 @@ function renderRows(){
 }
 $('#rows').onclick=e=>{const r=e.target.closest('.row'); if(r) loadAll(r.dataset.s);};
 $('#search').oninput=renderRows;
+updateSortUI();
 
 $('#upgradeBtn').onclick=()=>$('#modal').classList.remove('hidden');
 $('#modal').onclick=e=>{if(e.target.id==='modal')$('#modal').classList.add('hidden');};
 document.querySelectorAll('.plan button').forEach(b=>b.onclick=()=>{ location.href='../index.html#pricing'; });
 
-loadAll('BTCUSDT'); loadScreener(); setInterval(refreshTickers,15000); // 15s замість 10s
+loadAll('BTCUSDT'); loadScreener(); setInterval(refreshTickers,15000);
 </script>
 </body>
 </html>
