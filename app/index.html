@@ -196,29 +196,44 @@ function natrOf(k){ if(k.length<2) return 0;
   return atr/k[k.length-1].close*100;
 }
 
-async function lazyLoadNatr(items){
-  const toLoad=items.filter(r=>getCachedNatr(r.s)==null);
-  for(const r of items){const cached=getCachedNatr(r.s); if(cached!=null) natrMap[r.s]=cached;}
-  renderRows();
-  for(let i=0;i<toLoad.length;i++){
-    try{
-      const k=await getKlines(toLoad[i].s,'1d',16);
-      const n=natrOf(k);
-      natrMap[toLoad[i].s]=n;
-      setCachedNatr(toLoad[i].s,n);
-      if(i%3===0) renderRows();
-    }catch{}
-  }
-  saveCache();
-  renderRows();
+/* ── Паралельний пул запитів (10 одночасно) ── */
+async function poolLimit(items,limit,fn){
+  let i=0;
+  const workers=Array.from({length:Math.min(limit,items.length)},async()=>{
+    while(i<items.length){const idx=i++; await fn(items[idx]);}
+  });
+  await Promise.all(workers);
 }
 
+async function lazyLoadNatr(items){
+  for(const r of items){const cached=getCachedNatr(r.s); if(cached!=null) natrMap[r.s]=cached;}
+  renderRows();
+  const toLoad=items.filter(r=>natrMap[r.s]==null);
+  await poolLimit(toLoad,10,async r=>{
+    try{
+      const k=await getKlines(r.s,'1d',16);
+      const n=natrOf(k);
+      natrMap[r.s]=n; setCachedNatr(r.s,n);
+      renderRows();
+    }catch{}
+  });
+  saveCache(); renderRows();
+}
+
+const LIST_KEY='scr_list_cache';
 async function loadScreener(){
+  // 1) МИТТЄВО з localStorage (якщо кеш є)
+  try{
+    const c=JSON.parse(localStorage.getItem(LIST_KEY)||'null');
+    if(Array.isArray(c)&&c.length){screenerData=c; renderRows();}
+  }catch{}
+  // 2) Свіжі дані з Binance у фоні
   const t=await cachedFetch(BASE+'/ticker/24hr',15000);
   if(!Array.isArray(t)) return;
   screenerData=t.filter(x=>x.symbol.endsWith('USDT')&&!/UP|DOWN|BULL|BEAR/.test(x.symbol))
     .map(x=>({s:x.symbol,chg:+x.priceChangePercent,vol:+x.quoteVolume}))
     .sort((a,b)=>b.vol-a.vol).slice(0,30);
+  try{localStorage.setItem(LIST_KEY,JSON.stringify(screenerData));}catch{}
   renderRows();
   lazyLoadNatr(screenerData.slice(0,20));
 }
