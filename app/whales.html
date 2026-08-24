@@ -10,34 +10,38 @@
 :root{--bg:#0b0d10;--panel:#101418;--border:#1d2329;--text:#d1d4dc;--muted:#787f8a;--green:#2ebd85;--red:#f6465d;--purple:#b57bee;--yellow:#f0b90b}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
-body{background:var(--bg);color:var(--text);font:11px/1.45 Inter,system-ui,sans-serif;overflow:hidden;font-variant-numeric:tabular-nums}
+body{background:var(--bg);color:var(--text);font:10px/1.4 Inter,system-ui,sans-serif;overflow:hidden;font-variant-numeric:tabular-nums}
 #topbar{height:44px;display:flex;align-items:center;gap:12px;padding:0 12px;border-bottom:1px solid var(--border);background:var(--panel)}
 .back{color:var(--muted);text-decoration:none;font-size:11px}
 .back:hover{color:var(--text)}
 .logo{font-weight:700;color:var(--text);text-decoration:none}
 .logo b{color:var(--yellow)}
+.hint{color:var(--muted);font-size:9px}
 #upd{color:var(--muted);font-size:10px;margin-left:auto}
 .btn-pro{background:linear-gradient(135deg,#f0b90b,#f8d33a);color:#111;border:0;border-radius:6px;padding:6px 12px;font-weight:700;text-decoration:none}
-#wrap{position:fixed;top:44px;left:0;right:0;bottom:0;overflow:auto;padding:6px}
-.tr{display:grid;grid-template-columns:60px repeat(4,minmax(120px,1fr)) minmax(200px,1.3fr) 62px 52px 80px;gap:4px;align-items:center;padding:3px 8px;border-bottom:1px solid #14181d;min-height:26px}
-.tr:hover{background:#161b21}
-.th{position:sticky;top:0;background:var(--panel);color:var(--muted);font-size:9px;text-transform:uppercase;z-index:5;border-bottom:1px solid var(--border)}
+#wrap{position:fixed;top:44px;left:0;right:0;bottom:0;overflow:auto;padding:10px}
+.tbl{min-width:1180px;max-width:1280px;margin:0 auto;border:1px solid var(--border);background:#0d1013;border-radius:4px;overflow:hidden}
+.tr{display:grid;grid-template-columns:64px 150px 150px 150px 150px 250px 70px 56px 84px;align-items:stretch;border-bottom:1px solid #12161b}
+.tr>span{padding:4px 8px;border-right:1px solid #12161b;display:flex;align-items:center;overflow:hidden;white-space:nowrap}
+.tr>span:last-child{border-right:0}
+.tr:hover{background:#151a20}
+.th{background:var(--panel);color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.4px;position:sticky;top:0;z-index:5}
 .sym b{font-size:11px}
-.wc{display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600}
-.wc em{font-style:normal;color:var(--muted);font-weight:400;margin-left:4px}
-.wc.bid{background:rgba(46,189,133,var(--a));color:#eafff5}
-.wc.ask{background:rgba(246,70,93,var(--a));color:#fff0f2}
-.wc.hit{outline:1px dashed #d1d4dc}
-.cnd{display:flex;gap:1px;align-items:center}
-.cnd i{width:7px;height:14px;border-radius:1px}
-.pos{color:var(--green)}.neg{color:var(--red)}
-.mut{color:var(--muted)}
-#pop{position:fixed;width:360px;height:300px;background:var(--panel);border:1px solid var(--border);border-radius:8px;z-index:50;display:none;box-shadow:0 20px 60px rgba(0,0,0,.6);padding:8px}
-#pop .ph{display:flex;gap:6px;align-items:center;margin-bottom:4px}
+.wc{display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;color:#fff}
+.wc em{font-style:normal;font-weight:400;opacity:.65;margin-left:4px;font-size:9px}
+.wc.bid{background:rgba(46,189,133,var(--a))}
+.wc.ask{background:rgba(246,70,93,var(--a))}
+.wc.hit{outline:1px dashed #c9cdd6}
+.cnd{display:flex;gap:2px;align-items:center}
+.cnd i{width:8px;height:16px;border-radius:1px}
+.pos{color:var(--green)}.neg{color:var(--red)}.mut{color:var(--muted)}
+#pop{position:fixed;width:420px;background:var(--panel);border:1px solid var(--border);border-radius:8px;z-index:50;display:none;box-shadow:0 20px 60px rgba(0,0,0,.6);padding:8px}
+#pop .ph{display:flex;gap:6px;align-items:center;margin-bottom:6px}
 #pop .ph b{font-size:12px}
-#pop .ph button{background:#1a2027;border:0;color:var(--muted);font:10px Inter;padding:2px 6px;border-radius:4px;cursor:pointer}
+#pop .ph span{display:flex;gap:2px}
+#pop .ph button{background:#1a2027;border:0;color:var(--muted);font:10px Inter;padding:2px 7px;border-radius:4px;cursor:pointer}
 #pop .ph button.on{background:#2a2e39;color:#fff}
-#popChart{height:250px}
+#popChart{height:280px}
 </style>
 </head>
 <body>
@@ -45,12 +49,15 @@ body{background:var(--bg);color:var(--text);font:11px/1.45 Inter,system-ui,sans-
   <a class="back" href="/app/">← Screener</a>
   <a class="logo" href="/">₿ CryptoScreener <b>PRO</b></a>
   <span class="mut">· Large Orders / Whales 🐋</span>
+  <span class="hint">пунктир = ціна билась у заявку · • = кругле число</span>
   <span id="upd"></span>
   <a class="btn-pro" href="/#pricing">⭐ PRO</a>
 </header>
 <div id="wrap">
-  <div class="tr th"><span>Symbol</span><span>F LONG</span><span>F SHORT</span><span>S LONG</span><span>S SHORT</span><span>Candles M5</span><span>%</span><span>BTC ρ</span><span>Vol 5m</span></div>
-  <div id="rows"></div>
+  <div class="tbl">
+    <div class="tr th"><span>Symbol</span><span>F Long</span><span>F Short</span><span>S Long</span><span>S Short</span><span>Candles M5</span><span>%</span><span>BTC ρ</span><span>Vol 5m</span></div>
+    <div id="rows"></div>
+  </div>
 </div>
 <div id="pop"><div class="ph"><b id="popSym"></b><span id="popTfs"></span></div><div id="popChart"></div></div>
 <script>
@@ -58,6 +65,7 @@ const $=s=>document.querySelector(s);
 const BASE='https://data-api.binance.vision/api/v3';
 const FAPI='https://fapi.binance.com/fapi/v1';
 const LIST_KEY='scr_list_cache';
+const UP='#2ebd85',DN='#f6465d';
 let screenerData=[],rows=[],maxV=1,btcR=[];
 const fmtV=v=>v>=1e9?(v/1e9).toFixed(2)+'B':v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(1)+'K':v.toFixed(0);
 const reqCache=new Map();
@@ -65,24 +73,24 @@ async function cf(url,age){const n=Date.now();const h=reqCache.get(url);if(h&&n-
 async function poolLimit(items,limit,fn){let i=0;const w=Array.from({length:Math.min(limit,items.length)},async()=>{while(i<items.length){const x=i++;await fn(items[x]);}});await Promise.all(w);}
 async function getDepth(url){try{const d=await cf(url,3000);if(d.bids&&d.asks)return d;}catch{}return null;}
 async function getKlines(sym,tf,limit){try{const r=await cf(`${BASE}/klines?symbol=${sym}&interval=${tf}&limit=${limit}`,20000);return r.map(k=>({t:k[0]/1000,o:+k[1],h:+k[2],l:+k[3],c:+k[4],v:+k[5]}));}catch{return null;}}
-const maxWall=d=>d?d.bids.concat(d.asks).map(([p,q])=>({p:+p,v:+p*+q})).reduce((m,x)=>x.v>m.v?x:m,{p:0,v:0}):null;
 function walls(d){if(!d)return{b:null,a:null};const b=d.bids.map(([p,q])=>({p:+p,v:+p*+q})).reduce((m,x)=>x.v>m.v?x:m,{p:0,v:0});const a=d.asks.map(([p,q])=>({p:+p,v:+p*+q})).reduce((m,x)=>x.v>m.v?x:m,{p:0,v:0});return{b,a};}
 function isRound(p){if(!p)return false;const step=Math.pow(10,Math.floor(Math.log10(p))-1);return p%(step*10)===0;}
 function returns(kl){const r=[];for(let i=1;i<kl.length;i++)r.push(kl[i].c/kl[i-1].c-1);return r;}
 function corr(a,b){const n=Math.min(a.length,b.length);if(n<5)return null;const ma=a.slice(0,n).reduce((x,y)=>x+y,0)/n,mb=b.slice(0,n).reduce((x,y)=>x+y,0)/n;let num=0,da=0,db=0;for(let i=0;i<n;i++){const x=a[i]-ma,y=b[i]-mb;num+=x*y;da+=x*x;db+=y*y;}return num/Math.sqrt((da*db)||1);}
 function wallCell(w,price,kl){
   if(!w||!w.v)return '<span class="mut">—</span>';
-  const a=(0.25+0.75*(w.v/maxV)).toFixed(2);
+  const a=(0.22+0.78*(w.v/maxV)).toFixed(2);
   const dist=Math.abs((w.p-price)/price*100);
   let hit=false;
-  if(kl){const r=kl.slice(-6);hit=w.p>=Math.min(...r.map(x=>x.l))&&w.p<=Math.max(...r.map(x=>x.h));}
+  if(kl&&kl.length>5){const r=kl.slice(-6);hit=w.p>=Math.min(...r.map(x=>x.l))&&w.p<=Math.max(...r.map(x=>x.h));}
   const rnd=isRound(w.p);
   return `<span class="wc ${w.side} ${hit?'hit':''}" style="--a:${a}">${rnd?'• ':''}${fmtV(w.v)}<em>${dist.toFixed(1)}%</em></span>`;
 }
 function render(){
   $('#rows').innerHTML=rows.map(r=>{
-    const cnd=r.kl?r.kl.slice(-10).map(x=>{const pct=(x.c/x.o-1)*100;const op=Math.min(1,.25+Math.abs(pct)/0.8);return `<i style="background:${x.c>=x.o?'var(--green)':'var(--red)'};opacity:${op.toFixed(2)}"></i>`;}).join(''):'<span class="mut">…</span>';
-    const pct=r.kl?((r.kl[r.kl.length-1].c/r.kl[r.kl.length-10]?.o-1)*100):null;
+    const cnd=r.kl?r.kl.slice(-10).map(x=>{const pct=(x.c/x.o-1)*100;const op=Math.min(1,.3+Math.abs(pct)/0.8);return `<i style="background:${x.c>=x.o?UP:DN};opacity:${op.toFixed(2)}"></i>`;}).join(''):'<span class="mut">…</span>';
+    let pct=null;
+    if(r.kl&&r.kl.length>=10){const base=r.kl[r.kl.length-10].o;pct=(r.kl[r.kl.length-1].c/base-1)*100;}
     return `<div class="tr" data-s="${r.sym}">
       <span class="sym"><b>${r.sym.replace('USDT','')}</b></span>
       <span>${wallCell(r.fB,r.price,r.kl)}</span><span>${wallCell(r.fA,r.price,r.kl)}</span>
@@ -106,8 +114,8 @@ async function refresh(){
       cf(`${BASE}/ticker/24hr?symbol=${r.sym}`,15000).catch(()=>null)
     ]);
     const sw=walls(sd),fw=walls(fd);
-    r.sB=sw.b&&{...sw.b,side:'bid'};r.sA=sw.a&&{...sw.a,side:'ask'};
-    r.fB=fw.b&&{...fw.b,side:'bid'};r.fA=fw.a&&{...fw.a,side:'ask'};
+    r.sB=sw.b?{...sw.b,side:'bid'}:null;r.sA=sw.a?{...sw.a,side:'ask'}:null;
+    r.fB=fw.b?{...fw.b,side:'bid'}:null;r.fA=fw.a?{...fw.a,side:'ask'}:null;
     r.kl=kl;r.price=tk?+tk.lastPrice:(kl?kl[kl.length-1].c:0);
     r.corr=kl&&btcR.length?corr(returns(kl),btcR):null;
     r.vol5=kl?kl[kl.length-1].v*kl[kl.length-1].c:0;
@@ -116,17 +124,26 @@ async function refresh(){
   render();
   $('#upd').textContent='updated '+new Date().toLocaleTimeString();
 }
-/* ── Popup-графік при наведенні ── */
-let popChart=null,popSeries=null,popSym=null,popTf='5m',hoverT=null;
+/* ── Попап зі СВІЧКАМИ + об'ємом, як у терміналі ── */
+let popChart=null,popCandles=null,popVol=null,popSym=null,popTf='5m',hoverT=null;
 $('#popTfs').innerHTML=['1m','5m','1h','1d'].map(t=>`<button data-t="${t}" class="${t==='5m'?'on':''}">${t}</button>`).join('');
-$('#popTfs').onclick=async e=>{const b=e.target.closest('button');if(!b)return;popTf=b.dataset.t;document.querySelectorAll('#popTfs button').forEach(x=>x.classList.toggle('on',x===b));if(popSym)await loadPop(popSym);};
-async function loadPop(sym){const kl=await getKlines(sym,popTf,200);if(!kl||!popSeries)return;popSeries.setData(kl.map(x=>({time:x.t,value:x.c})));}
+$('#popTfs').onclick=e=>{const b=e.target.closest('button');if(!b)return;popTf=b.dataset.t;document.querySelectorAll('#popTfs button').forEach(x=>x.classList.toggle('on',x===b));if(popSym)loadPop(popSym);};
+async function loadPop(sym){
+  const kl=await getKlines(sym,popTf,200);if(!kl||!popCandles)return;
+  popCandles.setData(kl.map(x=>({time:x.t,open:x.o,high:x.h,low:x.l,close:x.c})));
+  popVol.setData(kl.map(x=>({time:x.t,value:x.v,color:x.c>=x.o?'rgba(46,189,133,.4)':'rgba(246,70,93,.4)'})));
+}
 function showPop(sym,x,y){
   const pop=$('#pop');pop.style.display='block';
-  pop.style.left=Math.min(x+16,innerWidth-380)+'px';
-  pop.style.top=Math.min(y+12,innerHeight-320)+'px';
-  $('#popSym').textContent=sym;popSym=sym;
-  if(!popChart){popChart=LightweightCharts.createChart($('#popChart'),{autoSize:true,layout:{background:{type:'solid',color:'#101418'},textColor:'#787f8a',fontSize:9},grid:{vertLines:{visible:false},horzLines:{visible:false}},rightPriceScale:{borderColor:'#1d2329'},timeScale:{borderColor:'#1d2329',timeVisible:true}});popSeries=popChart.addAreaSeries({lineColor:'#f0b90b',topColor:'rgba(240,185,11,.25)',bottomColor:'rgba(240,185,11,0)'});}
+  pop.style.left=Math.max(8,Math.min(x+16,innerWidth-440))+'px';
+  pop.style.top=Math.max(50,Math.min(y+12,innerHeight-340))+'px';
+  $('#popSym').textContent=sym.replace('USDT','')+'/USDT';popSym=sym;
+  if(!popChart){
+    popChart=LightweightCharts.createChart($('#popChart'),{autoSize:true,layout:{background:{type:'solid',color:'#101418'},textColor:'#787f8a',fontSize:9},grid:{vertLines:{color:'#12161b'},horzLines:{color:'#12161b'}},rightPriceScale:{borderColor:'#1d2329'},timeScale:{borderColor:'#1d2329',timeVisible:true,secondsVisible:false},crosshair:{mode:LightweightCharts.CrosshairMode.Normal}});
+    popCandles=popChart.addCandlestickSeries({upColor:UP,downColor:DN,wickUpColor:UP,wickDownColor:DN,borderUpColor:UP,borderDownColor:DN});
+    popVol=popChart.addHistogramSeries({priceFormat:{type:'volume'},priceScaleId:'vol'});
+    popChart.priceScale('vol').applyOptions({scaleMargins:{top:.82,bottom:0}});
+  }
   loadPop(sym);
 }
 $('#rows').addEventListener('mouseover',e=>{const r=e.target.closest('.tr');if(!r)return;clearTimeout(hoverT);const s=r.dataset.s;hoverT=setTimeout(()=>showPop(s,e.clientX,e.clientY),250);});
