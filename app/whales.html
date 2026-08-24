@@ -19,9 +19,9 @@ body{background:var(--bg);color:var(--text);font:10px/1.4 Inter,system-ui,sans-s
 .hint{color:var(--muted);font-size:9px}
 #upd{color:var(--muted);font-size:10px;margin-left:auto}
 .btn-pro{background:linear-gradient(135deg,#f0b90b,#f8d33a);color:#111;border:0;border-radius:6px;padding:6px 12px;font-weight:700;text-decoration:none}
-#wrap{position:fixed;top:44px;left:0;right:0;bottom:0;overflow:auto;padding:10px}
-.tbl{min-width:1180px;max-width:1280px;margin:0 auto;border:1px solid var(--border);background:#0d1013;border-radius:4px;overflow:hidden}
-.tr{display:grid;grid-template-columns:64px 150px 150px 150px 150px 250px 70px 56px 84px;align-items:stretch;border-bottom:1px solid #12161b}
+#wrap{position:fixed;top:44px;left:0;right:0;bottom:0;overflow:auto;display:flex;gap:12px;padding:10px;align-items:flex-start;justify-content:center}
+.tbl{flex:0 0 auto;width:1150px;border:1px solid var(--border);background:#0d1013;border-radius:4px;overflow:hidden}
+.tr{display:grid;grid-template-columns:60px 145px 145px 145px 145px 240px 66px 52px 80px;align-items:stretch;border-bottom:1px solid #12161b}
 .tr>span{padding:4px 8px;border-right:1px solid #12161b;display:flex;align-items:center;overflow:hidden;white-space:nowrap}
 .tr>span:last-child{border-right:0}
 .tr:hover{background:#151a20}
@@ -56,7 +56,11 @@ body{background:var(--bg);color:var(--text);font:10px/1.4 Inter,system-ui,sans-s
 <div id="wrap">
   <div class="tbl">
     <div class="tr th"><span>Symbol</span><span>F Long</span><span>F Short</span><span>S Long</span><span>S Short</span><span>Candles M5</span><span>%</span><span>BTC ρ</span><span>Vol 5m</span></div>
-    <div id="rows"></div>
+    <div id="rowsL"></div>
+  </div>
+  <div class="tbl">
+    <div class="tr th"><span>Symbol</span><span>F Long</span><span>F Short</span><span>S Long</span><span>S Short</span><span>Candles M5</span><span>%</span><span>BTC ρ</span><span>Vol 5m</span></div>
+    <div id="rowsR"></div>
   </div>
 </div>
 <div id="pop"><div class="ph"><b id="popSym"></b><span id="popTfs"></span></div><div id="popChart"></div></div>
@@ -64,9 +68,8 @@ body{background:var(--bg);color:var(--text);font:10px/1.4 Inter,system-ui,sans-s
 const $=s=>document.querySelector(s);
 const BASE='https://data-api.binance.vision/api/v3';
 const FAPI='https://fapi.binance.com/fapi/v1';
-const LIST_KEY='scr_list_cache';
 const UP='#2ebd85',DN='#f6465d';
-let screenerData=[],rows=[],maxV=1,btcR=[];
+let screenerData=[],priceMap={},rows=[],maxV=1,btcR=[];
 const fmtV=v=>v>=1e9?(v/1e9).toFixed(2)+'B':v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(1)+'K':v.toFixed(0);
 const reqCache=new Map();
 async function cf(url,age){const n=Date.now();const h=reqCache.get(url);if(h&&n-h.t<age)return h.d;const r=await fetch(url);const d=await r.json();reqCache.set(url,{d,t:n});return d;}
@@ -80,43 +83,45 @@ function corr(a,b){const n=Math.min(a.length,b.length);if(n<5)return null;const 
 function wallCell(w,price,kl){
   if(!w||!w.v)return '<span class="mut">—</span>';
   const a=(0.22+0.78*(w.v/maxV)).toFixed(2);
-  const dist=Math.abs((w.p-price)/price*100);
+  const dist=price?Math.abs((w.p-price)/price*100):0;
   let hit=false;
   if(kl&&kl.length>5){const r=kl.slice(-6);hit=w.p>=Math.min(...r.map(x=>x.l))&&w.p<=Math.max(...r.map(x=>x.h));}
   const rnd=isRound(w.p);
   return `<span class="wc ${w.side} ${hit?'hit':''}" style="--a:${a}">${rnd?'• ':''}${fmtV(w.v)}<em>${dist.toFixed(1)}%</em></span>`;
 }
+function rowHtml(r){
+  const cnd=r.kl?r.kl.slice(-10).map(x=>{const pct=(x.c/x.o-1)*100;const op=Math.min(1,.3+Math.abs(pct)/0.8);return `<i style="background:${x.c>=x.o?UP:DN};opacity:${op.toFixed(2)}"></i>`;}).join(''):'<span class="mut">…</span>';
+  let pct=null;
+  if(r.kl&&r.kl.length>=10){const base=r.kl[r.kl.length-10].o;pct=(r.kl[r.kl.length-1].c/base-1)*100;}
+  return `<div class="tr" data-s="${r.sym}">
+    <span class="sym"><b>${r.sym.replace('USDT','')}</b></span>
+    <span>${wallCell(r.fB,r.price,r.kl)}</span><span>${wallCell(r.fA,r.price,r.kl)}</span>
+    <span>${wallCell(r.sB,r.price,r.kl)}</span><span>${wallCell(r.sA,r.price,r.kl)}</span>
+    <span class="cnd">${cnd}</span>
+    <span class="${pct==null?'mut':pct>=0?'pos':'neg'}">${pct==null?'—':(pct>=0?'+':'')+pct.toFixed(2)+'%'}</span>
+    <span class="mut">${r.corr==null?'—':r.corr.toFixed(1)}</span>
+    <span class="mut">${r.vol5?fmtV(r.vol5):'—'}</span></div>`;
+}
 function render(){
-  $('#rows').innerHTML=rows.map(r=>{
-    const cnd=r.kl?r.kl.slice(-10).map(x=>{const pct=(x.c/x.o-1)*100;const op=Math.min(1,.3+Math.abs(pct)/0.8);return `<i style="background:${x.c>=x.o?UP:DN};opacity:${op.toFixed(2)}"></i>`;}).join(''):'<span class="mut">…</span>';
-    let pct=null;
-    if(r.kl&&r.kl.length>=10){const base=r.kl[r.kl.length-10].o;pct=(r.kl[r.kl.length-1].c/base-1)*100;}
-    return `<div class="tr" data-s="${r.sym}">
-      <span class="sym"><b>${r.sym.replace('USDT','')}</b></span>
-      <span>${wallCell(r.fB,r.price,r.kl)}</span><span>${wallCell(r.fA,r.price,r.kl)}</span>
-      <span>${wallCell(r.sB,r.price,r.kl)}</span><span>${wallCell(r.sA,r.price,r.kl)}</span>
-      <span class="cnd">${cnd}</span>
-      <span class="${pct==null?'mut':pct>=0?'pos':'neg'}">${pct==null?'—':(pct>=0?'+':'')+pct.toFixed(2)+'%'}</span>
-      <span class="mut">${r.corr==null?'—':r.corr.toFixed(1)}</span>
-      <span class="mut">${r.vol5?fmtV(r.vol5):'—'}</span></div>`;
-  }).join('');
+  $('#rowsL').innerHTML=rows.slice(0,24).map(rowHtml).join('');
+  $('#rowsR').innerHTML=rows.slice(24,48).map(rowHtml).join('');
 }
 async function refresh(){
   if(!screenerData.length)return;
-  const syms=screenerData.slice(0,24).map(x=>x.s);
+  const t=await cf(BASE+'/ticker/24hr',15000).catch(()=>null);
+  if(Array.isArray(t)){t.forEach(x=>{priceMap[x.symbol]=+x.lastPrice;});}
   const bkl=await getKlines('BTCUSDT','5m',40);btcR=bkl?returns(bkl):[];
-  rows=syms.map(s=>({sym:s}));
-  await poolLimit(rows,6,async r=>{
-    const [sd,fd,kl,tk]=await Promise.all([
+  rows=screenerData.slice(0,48).map(x=>({sym:x.s}));
+  await poolLimit(rows,8,async r=>{
+    const [sd,fd,kl]=await Promise.all([
       getDepth(`${BASE}/depth?symbol=${r.sym}&limit=100`),
       getDepth(`${FAPI}/depth?symbol=${r.sym}&limit=100`),
-      getKlines(r.sym,'5m',40),
-      cf(`${BASE}/ticker/24hr?symbol=${r.sym}`,15000).catch(()=>null)
+      getKlines(r.sym,'5m',40)
     ]);
     const sw=walls(sd),fw=walls(fd);
     r.sB=sw.b?{...sw.b,side:'bid'}:null;r.sA=sw.a?{...sw.a,side:'ask'}:null;
     r.fB=fw.b?{...fw.b,side:'bid'}:null;r.fA=fw.a?{...fw.a,side:'ask'}:null;
-    r.kl=kl;r.price=tk?+tk.lastPrice:(kl?kl[kl.length-1].c:0);
+    r.kl=kl;r.price=priceMap[r.sym]||(kl?kl[kl.length-1].c:0);
     r.corr=kl&&btcR.length?corr(returns(kl),btcR):null;
     r.vol5=kl?kl[kl.length-1].v*kl[kl.length-1].c:0;
   });
@@ -124,7 +129,7 @@ async function refresh(){
   render();
   $('#upd').textContent='updated '+new Date().toLocaleTimeString();
 }
-/* ── Попап зі СВІЧКАМИ + об'ємом, як у терміналі ── */
+/* ── Попап зі свічками ── */
 let popChart=null,popCandles=null,popVol=null,popSym=null,popTf='5m',hoverT=null;
 $('#popTfs').innerHTML=['1m','5m','1h','1d'].map(t=>`<button data-t="${t}" class="${t==='5m'?'on':''}">${t}</button>`).join('');
 $('#popTfs').onclick=e=>{const b=e.target.closest('button');if(!b)return;popTf=b.dataset.t;document.querySelectorAll('#popTfs button').forEach(x=>x.classList.toggle('on',x===b));if(popSym)loadPop(popSym);};
@@ -146,13 +151,16 @@ function showPop(sym,x,y){
   }
   loadPop(sym);
 }
-$('#rows').addEventListener('mouseover',e=>{const r=e.target.closest('.tr');if(!r)return;clearTimeout(hoverT);const s=r.dataset.s;hoverT=setTimeout(()=>showPop(s,e.clientX,e.clientY),250);});
-$('#rows').addEventListener('mouseout',()=>{clearTimeout(hoverT);$('#pop').style.display='none';});
+$('#wrap').addEventListener('mouseover',e=>{const r=e.target.closest('.tr');if(!r||r.classList.contains('th'))return;clearTimeout(hoverT);const s=r.dataset.s;hoverT=setTimeout(()=>showPop(s,e.clientX,e.clientY),250);});
+$('#wrap').addEventListener('mouseout',()=>{clearTimeout(hoverT);$('#pop').style.display='none';});
 /* ── Старт ── */
 (async()=>{
-  try{const c=JSON.parse(localStorage.getItem(LIST_KEY)||'null');if(Array.isArray(c)&&c.length)screenerData=c;}catch{}
-  if(!screenerData.length){const t=await cf(BASE+'/ticker/24hr',15000);screenerData=t.filter(x=>x.symbol.endsWith('USDT')&&!/UP|DOWN|BULL|BEAR/.test(x.symbol)).map(x=>({s:x.symbol,vol:+x.quoteVolume})).sort((a,b)=>b.vol-a.vol).slice(0,40);}
-  refresh();setInterval(refresh,10000);
+  const t=await cf(BASE+'/ticker/24hr',15000);
+  if(Array.isArray(t)){
+    screenerData=t.filter(x=>x.symbol.endsWith('USDT')&&!/UP|DOWN|BULL|BEAR/.test(x.symbol)).map(x=>({s:x.symbol,vol:+x.quoteVolume})).sort((a,b)=>b.vol-a.vol);
+    t.forEach(x=>{priceMap[x.symbol]=+x.lastPrice;});
+  }
+  refresh();setInterval(refresh,12000);
 })();
 </script>
 </body>
