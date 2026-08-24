@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CryptoScreener PRO — Real-Time Crypto Screener & Multi-Chart Terminal</title>
+<meta name="description" content="Scan 300+ Binance pairs in real time: multi-chart candlestick terminal, 14 timeframes (1s–1M), NATR volatility and volume screener. Free web crypto terminal.">
+<link rel="canonical" href="https://YOUR-DOMAIN.vercel.app/">
+<meta name="theme-color" content="#0b0d10">
+<meta property="og:type" content="website">
+<meta property="og:title" content="CryptoScreener PRO — Real-Time Crypto Screener & Multi-Chart Terminal">
+<meta property="og:description" content="Live Binance candles, NATR volatility screener, volume leaders. Free tier — no API key required.">
+<meta property="og:url" content="https://YOUR-DOMAIN.vercel.app/">
+<meta property="og:image" content="https://YOUR-DOMAIN.vercel.app/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"CryptoScreener PRO","applicationCategory":"FinanceApplication","operatingSystem":"Web","url":"https://YOUR-DOMAIN.vercel.app/","description":"Real-time cryptocurrency screener and multi-chart trading terminal powered by Binance market data.","offers":[{"@type":"Offer","name":"1 month","price":"12","priceCurrency":"USD"},{"@type":"Offer","name":"3 months","price":"30","priceCurrency":"USD"},{"@type":"Offer","name":"6 months","price":"54","priceCurrency":"USD"},{"@type":"Offer","name":"1 year","price":"89","priceCurrency":"USD"}]}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is CryptoScreener PRO?","acceptedAnswer":{"@type":"Answer","text":"A real-time cryptocurrency screener and multi-chart terminal. It displays live candlestick charts on multiple timeframes and ranks Binance pairs by 24h change, NATR volatility and trading volume."}},{"@type":"Question","name":"Where does the data come from?","acceptedAnswer":{"@type":"Answer","text":"Market data is streamed in real time from Binance public market-data endpoints (REST + WebSocket). No account or API key is required for the free tier."}},{"@type":"Question","name":"What is NATR?","acceptedAnswer":{"@type":"Answer","text":"NATR (Normalized Average True Range) measures volatility as a percentage of price, letting you compare volatility across different coins."}},{"@type":"Question","name":"How much does PRO cost?","acceptedAnswer":{"@type":"Answer","text":"Plans: $12/month, $30 per 3 months, $54 per 6 months, or $89/year. Longer plans include up to 38% discount."}},{"@type":"Question","name":"Can I cancel my subscription anytime?","acceptedAnswer":{"@type":"Answer","text":"Yes. Subscriptions are managed via Stripe; you can cancel in one click and keep access until the end of the paid period."}}]}
+</script>
+<style>
+:root{--bg:#0b0d10;--panel:#101418;--border:#1d2329;--text:#d1d4dc;--muted:#787f8a;--green:#2ebd85;--red:#f6465d;--yellow:#f0b90b}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font:16px/1.6 Inter,system-ui,sans-serif}
+.wrap{max-width:1100px;margin:0 auto;padding:0 20px}
+header{position:sticky;top:0;background:rgba(11,13,16,.9);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);z-index:10}
+nav{display:flex;align-items:center;gap:24px;height:60px}
+.logo{font-weight:800;margin-right:auto}
+.logo b{color:var(--yellow)}
+nav a{color:var(--muted);text-decoration:none;font-size:14px}
+nav a:hover{color:var(--text)}
+.btn{display:inline-block;background:var(--yellow);color:#111;font-weight:700;padding:10px 20px;border-radius:8px;text-decoration:none}
+.btn.ghost{background:none;border:1px solid var(--border);color:var(--text)}
+.hero{display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:center;padding:80px 0 60px}
+h1{font-size:44px;line-height:1.15;margin-bottom:18px}
+h1 em{color:var(--yellow);font-style:normal}
+.hero p{color:var(--muted);margin-bottom:28px;font-size:17px}
+.cta{display:flex;gap:12px;flex-wrap:wrap}
+.term{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.term-bar{display:flex;gap:6px;margin-bottom:8px}
+.term-bar i{width:10px;height:10px;border-radius:50%}
+.term-bar i:nth-child(1){background:var(--red)}.term-bar i:nth-child(2){background:var(--yellow)}.term-bar i:nth-child(3){background:var(--green)}
+#heroChart{height:300px}
+section{padding:60px 0}
+h2{font-size:30px;margin-bottom:28px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:22px}
+.card h3{margin-bottom:8px;font-size:16px}
+.card p{color:var(--muted);font-size:14px}
+.card .ico{font-size:24px;margin-bottom:10px}
+.plans{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.plan{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:24px 18px;text-align:center;position:relative}
+.plan.best{border-color:var(--yellow)}
+.plan .save{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--yellow);color:#111;font-size:11px;font-weight:700;border-radius:20px;padding:2px 10px}
+.plan .price{font-size:32px;font-weight:800;margin:6px 0}
+.plan .per{color:var(--muted);font-size:13px;margin-bottom:16px}
+details{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin-bottom:10px}
+summary{cursor:pointer;font-weight:600}
+details p{color:var(--muted);margin-top:10px;font-size:14px}
+footer{border-top:1px solid var(--border);padding:30px 0;color:var(--muted);font-size:13px}
+.coins{color:var(--muted);font-size:14px;margin-top:14px}
+@media(max-width:900px){.hero,.grid,.plans{grid-template-columns:1fr}h1{font-size:32px}}
+</style>
+</head>
+<body>
+
+<header><div class="wrap"><nav>
+  <div class="logo">₿ CryptoScreener <b>PRO</b></div>
+  <a href="#features">Features</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a>
+  <a class="btn" href="app/index.html">Launch Terminal</a>
+</nav></div></header>
+
+<main class="wrap">
+  <div class="hero">
+    <div>
+      <h1>Real-Time <em>Crypto Screener</em> & Multi-Chart Trading Terminal</h1>
+      <p>Scan 300+ Binance pairs live: candlestick grids on 14 timeframes (1s–1M), NATR volatility ranking and volume leaders — in one professional dark terminal. No API key. No install.</p>
+      <div class="cta">
+        <a class="btn" href="app/index.html">🚀 Launch Free Terminal</a>
+        <a class="btn ghost" href="#pricing">View PRO Pricing</a>
+      </div>
+      <p class="coins">Track Bitcoin (BTC), Ethereum (ETH), Solana (SOL), BNB, XRP, DOGE, SUI, LINK and hundreds more USDT pairs.</p>
+    </div>
+    <div class="term"><div class="term-bar"><i></i><i></i><i></i></div><div id="heroChart"></div></div>
+  </div>
+
+  <section id="features">
+    <h2>Why traders choose CryptoScreener</h2>
+    <div class="grid">
+      <div class="card"><div class="ico">📊</div><h3>Multi-Chart Grid</h3><p>2×2 candlestick grid with synchronized symbol — see 15m, 30m, 4h and 1d at a glance.</p></div>
+      <div class="card"><div class="ico">⚡</div><h3>Real-Time WebSocket</h3><p>Candles update tick-by-tick via Binance WebSocket streams, not slow polling.</p></div>
+      <div class="card"><div class="ico">🌡️</div><h3>NATR Volatility Scanner</h3><p>Normalized ATR ranking instantly shows which coins are actually moving today.</p></div>
+      <div class="card"><div class="ico">💧</div><h3>Volume Leaders</h3><p>Screener sorted by 24h quote volume — trade only liquid markets.</p></div>
+      <div class="card"><div class="ico">⏱️</div><h3>14 Timeframes</h3><p>From 1-second scalping charts to 1-month macro view, per-panel switching.</p></div>
+      <div class="card"><div class="ico">🌙</div><h3>Pro Dark UI</h3><p>Terminal-grade dark theme designed for long sessions, desktop and tablet.</p></div>
+    </div>
+  </section>
+
+  <section id="pricing">
+    <h2>Simple pricing</h2>
+    <div class="plans">
+      <div class="plan"><h3>1 Month</h3><div class="price">$12</div><div class="per">$12/mo</div><a class="btn" href="/app/">Start</a></div>
+      <div class="plan"><h3>3 Months</h3><div class="price">$30</div><div class="per">$10/mo</div><a class="btn" href="/app/">Start</a></div>
+      <div class="plan best"><div class="save">SAVE 25%</div><h3>6 Months</h3><div class="price">$54</div><div class="per">$9/mo</div><a class="btn" href="/app/">Start</a></div>
+      <div class="plan"><div class="save">SAVE 38%</div><h3>1 Year</h3><div class="price">$89</div><div class="per">$7.4/mo</div><a class="btn" href="/app/">Start</a></div>
+    </div>
+  </section>
+
+  <section id="faq">
+    <h2>FAQ</h2>
+    <details><summary>What is CryptoScreener PRO?</summary><p>A real-time cryptocurrency screener and multi-chart terminal. It displays live candlestick charts on multiple timeframes and ranks Binance pairs by 24h change, NATR volatility and trading volume.</p></details>
+    <details><summary>Where does the data come from?</summary><p>Market data is streamed in real time from Binance public market-data endpoints (REST + WebSocket). No account or API key is required for the free tier.</p></details>
+    <details><summary>What is NATR?</summary><p>NATR (Normalized Average True Range) measures volatility as a percentage of price, letting you compare volatility across different coins.</p></details>
+    <details><summary>How much does PRO cost?</summary><p>Plans: $12/month, $30 per 3 months, $54 per 6 months, or $89/year. Longer plans include up to 38% discount.</p></details>
+    <details><summary>Can I cancel my subscription anytime?</summary><p>Yes. Subscriptions are managed via Stripe; you can cancel in one click and keep access until the end of the paid period.</p></details>
+  </section>
+</main>
+
+<footer><div class="wrap">© 2026 CryptoScreener PRO · Market data by Binance · Not financial advice.</div></footer>
+
+<script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+<script>
+fetch('https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&interval=15m&limit=120')
+ .then(r=>r.json()).then(d=>{
+   const chart=LightweightCharts.createChart(document.getElementById('heroChart'),{autoSize:true,
+     layout:{background:{type:'solid',color:'transparent'},textColor:'#787f8a',fontSize:10},
+     grid:{vertLines:{visible:false},horzLines:{visible:false}},
+     rightPriceScale:{borderColor:'#1d2329'},timeScale:{borderColor:'#1d2329',timeVisible:true}});
+   const s=chart.addAreaSeries({lineColor:'#f0b90b',topColor:'rgba(240,185,11,.25)',bottomColor:'rgba(240,185,11,0)'});
+   s.setData(d.map(k=>({time:k[0]/1000,value:+k[4]})));
+ }).catch(()=>{});
+</script>
+</body>
+</html>
