@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>CryptoScreener PRO — Order Book Density</title>
+<style>
+:root{--bg:#0b0d10;--panel:#101418;--border:#1d2329;--text:#d1d4dc;--muted:#787f8a;--green:#2ebd85;--red:#f6465d;--purple:#b57bee;--yellow:#f0b90b}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font:12px/1.45 Inter,system-ui,sans-serif;overflow:hidden;font-variant-numeric:tabular-nums}
+#topbar{height:44px;display:flex;align-items:center;gap:12px;padding:0 12px;border-bottom:1px solid var(--border);background:var(--panel)}
+.back{color:var(--muted);text-decoration:none;font-size:11px;white-space:nowrap}
+.back:hover{color:var(--text)}
+.logo{font-weight:700;color:var(--text);text-decoration:none;white-space:nowrap}
+.logo b{color:var(--yellow)}
+#sortBar{display:flex;gap:2px;margin-left:auto}
+#sortBar button{background:none;border:0;color:var(--muted);font:11px Inter;padding:4px 8px;border-radius:4px;cursor:pointer;white-space:nowrap}
+#sortBar button:hover{color:var(--text);background:#1a2027}
+#sortBar button.on{background:var(--yellow);color:#111;font-weight:700}
+.btn-pro{background:linear-gradient(135deg,#f0b90b,#f8d33a);color:#111;border:0;border-radius:6px;padding:6px 12px;font-weight:700;text-decoration:none;white-space:nowrap}
+#upd{color:var(--muted);font-size:10px}
+#dgrid{position:fixed;top:44px;left:0;right:0;bottom:0;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:6px;padding:6px;align-content:start}
+.dcol{background:var(--panel);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.dhead{display:flex;align-items:center;gap:8px;padding:8px 8px 4px}
+.dhead b{font-size:13px}
+.dhead .price{margin-left:auto;color:var(--text)}
+.chg.pos{color:var(--green)}.chg.neg{color:var(--red)}
+.ratio{height:14px;background:rgba(246,70,93,.4);border-radius:3px;margin:6px 8px;position:relative;overflow:hidden}
+.ratio i{position:absolute;left:0;top:0;bottom:0;background:rgba(46,189,133,.6)}
+.ratio b{position:relative;display:block;text-align:center;font-size:9px;color:#fff;line-height:14px}
+.mid{ text-align:center;color:var(--yellow);font-size:11px;font-weight:700;padding:4px 0;border-top:1px dashed var(--border);border-bottom:1px dashed var(--border)}
+.wall{display:grid;grid-template-columns:52px 1fr auto auto;gap:6px;padding:3px 8px;font-size:10px}
+.wall .sz{font-weight:700}
+.wall .dst{color:var(--muted)}
+.wall .age{color:var(--purple);min-width:34px;text-align:right}
+.wall.ask{color:#ffb4bc;background:linear-gradient(to left,rgba(246,70,93,.30) var(--w),transparent var(--w))}
+.wall.bid{color:#9fe0c8;background:linear-gradient(to left,rgba(46,189,133,.30) var(--w),transparent var(--w))}
+.sec{font-size:9px;color:var(--muted);text-transform:uppercase;padding:4px 8px 0}
+</style>
+</head>
+<body>
+<header id="topbar">
+  <a class="back" href="/app/">← Screener</a>
+  <a class="logo" href="/">₿ CryptoScreener <b>PRO</b></a>
+  <span style="color:var(--muted)">· Order Book Density</span>
+  <span id="upd"></span>
+  <div id="sortBar">
+    <button data-mode="vol" class="on">💧 Volume</button>
+    <button data-mode="bid">🟢 Bid pressure</button>
+    <button data-mode="ask">🔴 Ask pressure</button>
+  </div>
+  <a class="btn-pro" href="/#pricing">⭐ PRO</a>
+</header>
+<div id="dgrid"></div>
+<script>
+const $=s=>document.querySelector(s);
+const BASE='https://data-api.binance.vision/api/v3';
+const LIST_KEY='scr_list_cache';
+let screenerData=[],priceMap={},state={},seen={},sortMode='vol',syms=[];
+const fmtP=p=>p>=1000?p.toLocaleString('en-US',{maximumFractionDigits:1}):p>=100?p.toFixed(2):p>=1?p.toFixed(4):p.toFixed(6);
+const fmtV=v=>v>=1e9?(v/1e9).toFixed(2)+'B':v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(1)+'K':v.toFixed(0);
+async function poolLimit(items,limit,fn){let i=0;const w=Array.from({length:Math.min(limit,items.length)},async()=>{while(i<items.length){const x=i++;await fn(items[x]);}});await Promise.all(w);}
+async function getDepth(sym){for(let t=0;t<2;t++){try{const r=await fetch(`${BASE}/depth?symbol=${sym}&limit=100`);const d=await r.json();if(d.bids&&d.asks)return d;}catch{}await new Promise(r=>setTimeout(r,500));}return null;}
+
+function analyze(d){
+  const bids=d.bids.map(([p,q])=>({p:+p,v:+p*+q}));
+  const asks=d.asks.map(([p,q])=>({p:+p,v:+p*+q}));
+  const bidTotal=bids.reduce((s,x)=>s+x.v,0), askTotal=asks.reduce((s,x)=>s+x.v,0);
+  const topB=bids.slice().sort((a,b)=>b.v-a.v).slice(0,4).sort((a,b)=>b.p-a.p);
+  const topA=asks.slice().sort((a,b)=>b.v-a.v).slice(0,4).sort((a,b)=>a.p-b.p);
+  const mid=(+d.bids[0][0]+ +d.asks[0][0])/2;
+  const maxV=Math.max(...topB.map(x=>x.v),...topA.map(x=>x.v),1);
+  return {bidTotal,askTotal,topB,topA,mid,maxV};
+}
+function wallAge(sym,side,w){
+  const key=sym+side+Math.round(w.p*10000);
+  const now=Date.now(); const s=seen[key]||(seen[key]=now);
+  const ms=now-s;
+  if(ms<60000)return 'new';
+  if(ms<3600000)return Math.round(ms/60000)+'m';
+  return (ms/3600000).toFixed(1)+'h';
+}
+function wallRow(sym,w,p,side){
+  const a=state[sym]; const pct=Math.max(10,Math.round(w.v/a.maxV*100));
+  const dst=(w.p-p)/p*100;
+  return `<div class="wall ${side}" style="--w:${pct}%"><span class="sz">${fmtV(w.v)}</span><span>${fmtP(w.p)}</span><span class="dst">${dst>=0?'+':''}${dst.toFixed(2)}%</span><span class="age">${wallAge(sym,side,w)}</span></div>`;
+}
+function createCol(sym){
+  const el=document.createElement('div');el.className='dcol';
+  const base=sym.replace('USDT','');
+  el.innerHTML=`<div class="dhead"><b>${base}</b><span class="chg"></span><span class="price"></span></div>
+  <div class="ratio"><i></i><b></b></div>
+  <div class="sec">Asks (стіни продавців)</div><div class="asks"></div>
+  <div class="mid"></div>
+  <div class="sec">Bids (стіни покупців)</div><div class="bids"></div>`;
+  $('#dgrid').appendChild(el);
+  return {el,priceEl:el.querySelector('.price'),chgEl:el.querySelector('.chg'),ratioEl:el.querySelector('.ratio'),asksEl:el.querySelector('.asks'),bidsEl:el.querySelector('.bids'),midEl:el.querySelector('.mid')};
+}
+let cols=new Map();
+function renderCol(sym){
+  const c=cols.get(sym),a=state[sym];if(!c||!a)return;
+  const p=priceMap[sym]||a.mid;
+  c.priceEl.textContent=fmtP(p);
+  const r=screenerData.find(x=>x.s===sym);
+  if(r){c.chgEl.textContent=(r.chg>=0?'+':'')+r.chg.toFixed(2)+'%';c.chgEl.className='chg '+(r.chg>=0?'pos':'neg');}
+  const bp=Math.round(a.bidTotal/(a.bidTotal+a.askTotal)*100);
+  c.ratioEl.querySelector('i').style.width=bp+'%';
+  c.ratioEl.querySelector('b').textContent=`Bids ${bp}% / ${100-bp}% Asks`;
+  c.midEl.textContent=fmtP(p);
+  c.asksEl.innerHTML=a.topA.map(w=>wallRow(sym,w,p,'ask')).join('');
+  c.bidsEl.innerHTML=a.topB.map(w=>wallRow(sym,w,p,'bid')).join('');
+}
+function imbalance(sym){const a=state[sym];if(!a)return 0;return (a.bidTotal-a.askTotal)/(a.bidTotal+a.askTotal);}
+function reorder(){
+  const vol=s=>screenerData.find(x=>x.s===s)?.vol||0;
+  const list=[...syms];
+  if(sortMode==='bid')list.sort((a,b)=>imbalance(b)-imbalance(a));
+  else if(sortMode==='ask')list.sort((a,b)=>imbalance(a)-imbalance(b));
+  else list.sort((a,b)=>vol(b)-vol(a));
+  list.forEach(s=>{const c=cols.get(s);if(c)$('#dgrid').appendChild(c.el);});
+}
+$('#sortBar').onclick=e=>{const b=e.target.closest('button');if(!b)return;sortMode=b.dataset.mode;document.querySelectorAll('#sortBar button').forEach(x=>x.classList.toggle('on',x===b));reorder();};
+
+async function refreshAll(){
+  await poolLimit(syms,4,async sym=>{
+    const d=await getDepth(sym);if(!d)return;
+    state[sym]=analyze(d);renderCol(sym);
+  });
+  $('#upd').textContent='updated '+new Date().toLocaleTimeString();
+  reorder();
+}
+async function init(){
+  try{const c=JSON.parse(localStorage.getItem(LIST_KEY)||'null');if(Array.isArray(c)&&c.length)screenerData=c;}catch{}
+  if(!screenerData.length){
+    const t=await fetch(BASE+'/ticker/24hr').then(r=>r.json());
+    screenerData=t.filter(x=>x.symbol.endsWith('USDT')&&!/UP|DOWN|BULL|BEAR/.test(x.symbol)).map(x=>({s:x.symbol,chg:+x.priceChangePercent,vol:+x.quoteVolume})).sort((a,b)=>b.vol-a.vol).slice(0,40);
+  }
+  syms=screenerData.slice(0,12).map(r=>r.s);
+  syms.forEach(s=>cols.set(s,createCol(s)));
+  const t=await fetch(BASE+'/ticker/24hr').then(r=>r.json()).catch(()=>null);
+  if(Array.isArray(t))t.forEach(x=>{priceMap[x.symbol]=+x.lastPrice;});
+  refreshAll();
+  setInterval(refreshAll,7000);
+  setInterval(async()=>{ /* свіжі ціні/24h */
+    try{const t=await fetch(BASE+'/ticker/24hr').then(r=>r.json());t.forEach(x=>{priceMap[x.symbol]=+x.lastPrice;});screenerData.forEach(r=>{const x=t.find(y=>y.symbol===r.s);if(x){r.chg=+x.priceChangePercent;}});syms.forEach(renderCol);}catch{}
+  },30000);
+}
+init();
+</script>
+</body>
+</html>
